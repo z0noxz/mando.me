@@ -7,6 +7,7 @@ Since smplshllctrlr a lot has happened:
 * Encrypted agent communication
 * Meterpreter/Reverse Shell Injection
 * A more user friendly UI
+* Built in post exlpoitation tools (enumeration, privilege escalation etc.)
 * And much more...
 
 ## DISCLAIMER:
