@@ -1,3 +1,6 @@
+```Please I need testers and feedback. Feel free to test and leave some comments or issues that you might find.
+```
+
 # mando.me
 
 This tool is under development, but feel free to use it and improve it as you like. contribution is appreciated...
